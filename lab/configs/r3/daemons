@@ -1,0 +1,26 @@
+# FRR daemon enablement for R3
+zebra=yes
+bgpd=no
+ospfd=yes
+ospf6d=no
+ripd=yes
+ripngd=no
+isisd=no
+pimd=no
+ldpd=no
+nhrpd=no
+eigrpd=no
+babeld=no
+sharpd=no
+staticd=yes
+pbrd=no
+bfdd=no
+fabricd=no
+vrrpd=no
+pathd=no
+
+vtysh_enable=yes
+zebra_options=" -A 127.0.0.1 -s 90000000"
+ospfd_options=" -A 127.0.0.1"
+ripd_options=" -A 127.0.0.1"
+staticd_options=" -A 127.0.0.1"

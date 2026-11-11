@@ -1,0 +1,42 @@
+:root {
+  --rw-bg: #0a0a0a;
+  --rw-bg-sidebar: #0c0c0c;
+  --rw-bg-elevated: #111111;
+  --rw-bg-card: #141414;
+  --rw-bg-muted: #1a1a1a;
+  --rw-bg-hover: #1f1f22;
+  --rw-border: #27272a;
+  --rw-border-strong: #3f3f46;
+  --rw-text: #fafafa;
+  --rw-text-muted: #a1a1aa;
+  --rw-text-faint: #71717a;
+  --rw-primary: #fafafa;
+  --rw-primary-fg: #0a0a0a;
+  --rw-success: #22c55e;
+  --rw-warning: #f59e0b;
+  --rw-danger: #f43f5e;
+  --rw-info: #60a5fa;
+  --rw-radius-sm: 8px;
+  --rw-radius: 12px;
+  --rw-radius-lg: 16px;
+  --rw-sidebar: 260px;
+  --rw-header: 56px;
+  --rw-font: 'Inter', 'Segoe UI', sans-serif;
+  --rw-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --rw-shadow: 0 0 0 1px var(--rw-border), 0 10px 30px rgba(0, 0, 0, 0.35);
+  --rw-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --rw-ease: linear;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

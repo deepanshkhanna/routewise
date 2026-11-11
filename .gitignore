@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Python
+backend/.venv/
+backend/venv/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# IDE / editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs / runtime
+*.log
+logs/
+tmp/
+temp/
+backend/data/
+*.db
+
+# ContainerLab runtime artifacts
+lab/clab-*/
+*.clab.out
+*.pcap
+
+# Test / coverage
+coverage/
+.nyc_output/

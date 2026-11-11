@@ -1,0 +1,46 @@
+# RouteWise three-router triangular OSPF lab
+# Deploy later with: ./scripts/deploy_lab.sh
+# Image: quay.io/frrouting/frr:containerlab-10.7.1
+#
+# Does NOT modify the Windows host routing table.
+# Keep networking isolated inside Docker / WSL2.
+
+name: routewise
+
+topology:
+  nodes:
+    r1:
+      kind: linux
+      image: quay.io/frrouting/frr:containerlab-10.7.1
+      binds:
+        - configs/r1:/etc/frr
+
+    r2:
+      kind: linux
+      image: quay.io/frrouting/frr:containerlab-10.7.1
+      binds:
+        - configs/r2:/etc/frr
+
+    r3:
+      kind: linux
+      image: quay.io/frrouting/frr:containerlab-10.7.1
+      binds:
+        - configs/r3:/etc/frr
+
+    # Isolated nftables helper (not on the R1–R3 data plane).
+    # Used for REAL_LAB firewall rule apply/inspect demos without touching the host.
+    fw1:
+      kind: linux
+      image: alpine:3.20
+      exec:
+        - apk add --no-cache nftables
+        - nft add table inet routewise
+        - nft 'add chain inet routewise forward { type filter hook forward priority 0 ; policy accept ; }'
+
+  links:
+    # R1 <-> R2 : 10.0.12.0/30
+    - endpoints: ["r1:eth1", "r2:eth1"]
+    # R2 <-> R3 : 10.0.23.0/30
+    - endpoints: ["r2:eth2", "r3:eth1"]
+    # R1 <-> R3 : 10.0.13.0/30
+    - endpoints: ["r1:eth2", "r3:eth2"]
