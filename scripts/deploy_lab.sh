@@ -31,5 +31,11 @@ fi
 echo "Deploying RouteWise lab from $TOPOLOGY ..."
 cd "$LAB_DIR"
 containerlab deploy -t routewise.clab.yml
+
+# Prevent Docker from restarting routers without recreating ContainerLab veth links.
+for c in clab-routewise-r1 clab-routewise-r2 clab-routewise-r3 clab-routewise-fw1; do
+  docker update --restart=no "$c" >/dev/null 2>&1 || true
+done
+
 echo "Lab deploy completed."
 echo "Inspect with: docker ps --filter name=clab-routewise"

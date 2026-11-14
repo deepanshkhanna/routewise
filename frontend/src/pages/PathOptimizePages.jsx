@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import Page from '../components/layout/Page.jsx';
 import TopologyCanvas from '../components/topology/TopologyCanvas.jsx';
 import { api } from '../services/api.js';
@@ -39,11 +40,8 @@ export function PathExplorerPage({ network }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
 
-  const run = async () => {
-    if (!network?.id) {
-      setError('Network not loaded yet. Wait a moment or open Settings and refresh.');
-      return;
-    }
+  const run = useCallback(async () => {
+    if (!network?.id) return;
     setError('');
     try {
       const data = await api.getPaths(network.id, source, destination);
@@ -51,7 +49,11 @@ export function PathExplorerPage({ network }) {
     } catch (err) {
       setError(err.message);
     }
-  };
+  }, [network?.id, source, destination]);
+
+  useEffect(() => {
+    run();
+  }, [run]);
 
   const highlight = result?.protocol_selected_path?.hops || [];
 
@@ -76,27 +78,34 @@ export function PathExplorerPage({ network }) {
           <h3 className="card-title">Hop journey</h3>
           <p className="card-sub">{result?.message || 'Run a trace to populate hops.'}</p>
           {result?.protocol_selected_path ? (
-            <div style={{ marginTop: 12 }}>
+            <motion.div
+              key={result.protocol_selected_path.hops.join('-')}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{ marginTop: 12 }}
+            >
               <div className="badge ok" style={{ marginBottom: 10 }}>
-                <span className="dot" /> Protocol-selected
+                <span className="dot" /> Protocol-selected (Lowest OSPF Cost)
               </div>
-              <p className="mono">{result.protocol_selected_path.hops.join(' → ')}</p>
+              <p className="mono" style={{ fontSize: '1.05rem', fontWeight: 600 }}>
+                {result.protocol_selected_path.hops.join(' → ')}
+              </p>
               <p className="card-sub">
                 cost {result.protocol_selected_path.total_cost} · latency{' '}
                 {result.protocol_selected_path.total_latency_ms} ms · loss{' '}
                 {result.protocol_selected_path.avg_packet_loss_pct}%
               </p>
-            </div>
+            </motion.div>
           ) : null}
           <h3 className="card-title" style={{ marginTop: 18 }}>
-            Candidates
+            All Simple Candidate Paths
           </h3>
           <table className="table">
             <thead>
               <tr>
                 <th>Path</th>
                 <th>Hops</th>
-                <th>Cost</th>
+                <th>OSPF Cost</th>
                 <th>Latency</th>
               </tr>
             </thead>
@@ -105,8 +114,8 @@ export function PathExplorerPage({ network }) {
                 <tr key={path.hops.join('-')}>
                   <td className="mono">{path.hops.join(' → ')}</td>
                   <td>{path.hop_count}</td>
-                  <td>{path.total_cost}</td>
-                  <td>{path.total_latency_ms} ms</td>
+                  <td className="mono">{path.total_cost}</td>
+                  <td className="mono">{path.total_latency_ms} ms</td>
                 </tr>
               ))}
             </tbody>
@@ -123,23 +132,24 @@ export function OptimizationPage({ network }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
 
-  const run = async () => {
-    if (!network?.id) {
-      setError('Network not loaded yet. Wait a moment or open Settings and refresh.');
-      return;
-    }
+  const run = useCallback(async () => {
+    if (!network?.id) return;
     setError('');
     try {
       setResult(await api.optimizePath(network.id, source, destination));
     } catch (err) {
       setError(err.message);
     }
-  };
+  }, [network?.id, source, destination]);
+
+  useEffect(() => {
+    run();
+  }, [run]);
 
   return (
     <Page
       title="Optimization"
-      subtitle="Deterministic recommendation engine — separate from protocol-selected routes."
+      subtitle="Multi-metric recommendation engine (S = 0.35L + 0.25P + 0.20H + 0.20C) — distinct from OSPF cost."
     >
       {!network ? <div className="banner">Loading topology from backend…</div> : null}
       {error ? <div className="banner error">{error}</div> : null}
@@ -156,7 +166,11 @@ export function OptimizationPage({ network }) {
         <div className="card card-pad">
           <h3 className="card-title">Recommendation</h3>
           {result?.recommended_path ? (
-            <>
+            <motion.div
+              key={result.recommended_path.hops.join('-')}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
               <p className="metric-value" style={{ fontSize: '1.35rem' }}>
                 {result.recommended_path.hops.join(' → ')}
               </p>
@@ -174,7 +188,7 @@ export function OptimizationPage({ network }) {
                   ))}
                 </tbody>
               </table>
-            </>
+            </motion.div>
           ) : (
             <p className="card-sub">Run optimization to compare candidates.</p>
           )}
@@ -191,13 +205,13 @@ export function OptimizationPage({ network }) {
             </thead>
             <tbody>
               <tr>
-                <td>Protocol-selected</td>
+                <td>Protocol-selected (OSPF)</td>
                 <td className="mono">
                   {result?.protocol_selected_path?.hops?.join(' → ') || '—'}
                 </td>
               </tr>
               <tr>
-                <td>Recommended</td>
+                <td>Optimizer Recommended</td>
                 <td className="mono">{result?.recommended_path?.hops?.join(' → ') || '—'}</td>
               </tr>
             </tbody>

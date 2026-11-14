@@ -103,6 +103,18 @@ class ContainerLabProvider(NetworkProvider):
         )
         refreshed = self.status()
         if bridge.ok or refreshed.lab_deployed:
+            # Avoid Docker restart-without-veths (breaks eth1/eth2 OSPF links).
+            for suffix in ("r1", "r2", "r3", "fw1"):
+                run_argv(
+                    [
+                        "docker",
+                        "update",
+                        "--restart=no",
+                        f"clab-{self.settings.lab_name}-{suffix}",
+                    ],
+                    timeout=20,
+                )
+            refreshed = self.status()
             refreshed.message = "ContainerLab deploy completed."
             if refreshed.lab_deployed:
                 refreshed.mode = ExecutionMode.REAL_LAB

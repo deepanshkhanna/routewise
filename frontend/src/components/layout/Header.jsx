@@ -1,6 +1,13 @@
-import { Bell, Moon, Search, Settings, Wifi, WifiOff } from 'lucide-react';
+import { Bell, Moon, Search, Settings, Wifi, WifiOff, Loader2 } from 'lucide-react';
 
-export default function Header({ backendOk, labRunning }) {
+export default function Header({ backendOk, labRunning, labChecking = false }) {
+  const frrBadge = labRunning
+    ? { className: 'ok', label: 'FRR up', Icon: Wifi }
+    : labChecking
+      ? { className: 'warn', label: 'FRR checking', Icon: Loader2 }
+      : { className: 'warn', label: 'FRR down', Icon: WifiOff };
+  const FrrIcon = frrBadge.Icon;
+
   return (
     <header className="app-header">
       <div className="brand">
@@ -17,9 +24,13 @@ export default function Header({ backendOk, labRunning }) {
           <span className="dot" />
           API {backendOk ? 'online' : 'offline'}
         </span>
-        <span className={`badge ${labRunning ? 'ok' : 'warn'}`}>
-          {labRunning ? <Wifi size={12} /> : <WifiOff size={12} />}
-          FRR {labRunning ? 'up' : 'down'}
+        <span className={`badge ${frrBadge.className}`}>
+          {labChecking && !labRunning ? (
+            <Loader2 size={12} className="rw-spin" />
+          ) : (
+            <FrrIcon size={12} />
+          )}
+          {frrBadge.label}
         </span>
         <button type="button" className="btn-icon" aria-label="Notifications">
           <Bell size={16} />

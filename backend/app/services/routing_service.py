@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 from typing import Any
 
 from app.core.config import (
@@ -40,12 +41,15 @@ SHOW_OSPF_NEIGHBOR = "show ip ospf neighbor"
 SHOW_IP_RIP = "show ip rip"
 SHOW_IP_RIP_STATUS = "show ip rip status"
 
+_LAB_STATUS_CACHE: tuple[float, LabStatusResponse] | None = None
+
 
 class RoutingService:
     """Orchestrate lab status and read-only router inspection."""
 
     def __init__(self, docker: DockerService | None = None) -> None:
         self.settings = get_settings()
+        self._custom_docker = docker is not None
         self.docker = docker or DockerService(self.settings)
 
     def validate_router_id(self, router_id: str) -> str:
@@ -57,6 +61,12 @@ class RoutingService:
         return rid
 
     def lab_status(self) -> LabStatusResponse:
+        global _LAB_STATUS_CACHE
+        now = time.monotonic()
+        use_cache = not self._custom_docker and type(self.docker).__name__ == "DockerService"
+        if use_cache and _LAB_STATUS_CACHE is not None and now < _LAB_STATUS_CACHE[0]:
+            return _LAB_STATUS_CACHE[1]
+
         expected = sorted(ALLOWED_ROUTER_IDS)
         docker_info = self.docker.docker_available()
         if not docker_info.ok:
@@ -117,7 +127,7 @@ class RoutingService:
             overall_status = "stopped"
             message = "Lab containers exist but are not running."
 
-        return LabStatusResponse(
+        resp = LabStatusResponse(
             lab_name=self.settings.lab_name,
             status=overall_status,  # type: ignore[arg-type]
             running=overall_status == "running",
@@ -127,6 +137,9 @@ class RoutingService:
             docker_ok=True,
             message=message,
         )
+        if use_cache:
+            _LAB_STATUS_CACHE = (time.monotonic() + 4.0, resp)
+        return resp
 
     def list_routers(self) -> RoutersListResponse:
         status = self.lab_status()

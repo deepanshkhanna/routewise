@@ -15,6 +15,7 @@ export default function Dashboard({ overview, network, lab, loading, error }) {
 
       <div className="grid-kpi">
         <MetricCard
+          index={0}
           label="Total routers"
           value={loading ? '—' : overview?.total_routers ?? 0}
           trend={lab?.running ? 'FRR lab detected' : 'Simulation plane'}
@@ -22,12 +23,14 @@ export default function Dashboard({ overview, network, lab, loading, error }) {
           icon={Router}
         />
         <MetricCard
+          index={1}
           label="Active links"
           value={loading ? '—' : overview?.active_links ?? 0}
           hint="Enabled and up"
           icon={Link2}
         />
         <MetricCard
+          index={2}
           label="Failed links"
           value={loading ? '—' : overview?.failed_links ?? 0}
           trend={overview?.failed_links ? 'Attention required' : 'Healthy fabric'}
@@ -35,6 +38,7 @@ export default function Dashboard({ overview, network, lab, loading, error }) {
           icon={ShieldAlert}
         />
         <MetricCard
+          index={3}
           label="Network health"
           value={overview?.failed_links ? 'Degraded' : 'Stable'}
           hint={overview?.data_source || 'software_simulation'}
@@ -97,10 +101,33 @@ export default function Dashboard({ overview, network, lab, loading, error }) {
       </div>
 
       <section className="card card-pad" style={{ marginTop: 14 }}>
-        <h3 className="card-title">Topology snapshot</h3>
-        <p className="card-sub">Interactive canvas — open Topology Designer for edits</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h3 className="card-title">Topology snapshot</h3>
+            <p className="card-sub">Live packet path preview — open Simulation Lab for interactive failover</p>
+          </div>
+          <span className="badge ok">
+            <span className="live-dot" /> Active Flow R1 → R3
+          </span>
+        </div>
         <div style={{ marginTop: 12 }}>
-          {network ? <TopologyCanvas network={network} /> : <div className="skeleton" style={{ height: 280 }} />}
+          {network ? (
+            <TopologyCanvas
+              network={network}
+              highlightPath={
+                network.links?.some(
+                  (l) =>
+                    ((l.source_router === 'R1' && l.target_router === 'R3') ||
+                      (l.source_router === 'R3' && l.target_router === 'R1')) &&
+                    (!l.enabled || l.status !== 'up'),
+                )
+                  ? ['R1', 'R2', 'R3']
+                  : ['R1', 'R3']
+              }
+            />
+          ) : (
+            <div className="skeleton" style={{ height: 280 }} />
+          )}
         </div>
       </section>
     </Page>

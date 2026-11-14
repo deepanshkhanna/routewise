@@ -12,18 +12,21 @@ topology:
     r1:
       kind: linux
       image: quay.io/frrouting/frr:containerlab-10.7.1
+      restart-policy: "no"
       binds:
         - configs/r1:/etc/frr
 
     r2:
       kind: linux
       image: quay.io/frrouting/frr:containerlab-10.7.1
+      restart-policy: "no"
       binds:
         - configs/r2:/etc/frr
 
     r3:
       kind: linux
       image: quay.io/frrouting/frr:containerlab-10.7.1
+      restart-policy: "no"
       binds:
         - configs/r3:/etc/frr
 
@@ -32,6 +35,7 @@ topology:
     fw1:
       kind: linux
       image: alpine:3.20
+      restart-policy: "no"
       exec:
         - apk add --no-cache nftables
         - nft add table inet routewise

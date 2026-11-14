@@ -2,11 +2,12 @@
 
 ## 1. Clone / open the project
 
-Use the existing `cn` folder as the project root.
-
-```powershell
-cd C:\Users\deepa\cn
+```bash
+git clone https://github.com/deepanshkhanna/routewise.git
+cd routewise
 ```
+
+Prefer the shorter path in [GETTING_STARTED.md](GETTING_STARTED.md) if you only need UI + API.
 
 ## 2. Verify tools
 

@@ -10,9 +10,15 @@ import logging
 import platform
 import shutil
 import subprocess
+import time
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
+
+# Cache native Windows docker availability and clab lookup so we don't pay
+# a 1.5s named-pipe timeout on every single CLI call when Docker Desktop is off.
+_NATIVE_DOCKER_DEAD_UNTIL: float = 0.0
+_CLAB_CACHE: tuple[float, str | None] = (0.0, None)
 
 
 @dataclass(frozen=True)
@@ -36,6 +42,21 @@ def wsl_available() -> bool:
 
 def run_argv(args: list[str], *, timeout: int = 60, cwd: str | None = None) -> BridgeResult:
     """Run argv natively; on Windows failure for docker/clab, retry inside WSL."""
+    global _NATIVE_DOCKER_DEAD_UNTIL
+    now = time.monotonic()
+    exe_base = (args[0] if args else "").replace("\\", "/").split("/")[-1].lower()
+    is_docker_or_clab = exe_base in {
+        "docker",
+        "docker.exe",
+        "clab",
+        "clab.exe",
+        "containerlab",
+        "containerlab.exe",
+    }
+
+    if _is_windows() and is_docker_or_clab and now < _NATIVE_DOCKER_DEAD_UNTIL and wsl_available():
+        return run_via_wsl(args, timeout=timeout, cwd=cwd)
+
     try:
         completed = subprocess.run(
             args,
@@ -67,9 +88,13 @@ def run_argv(args: list[str], *, timeout: int = 60, cwd: str | None = None) -> B
                 returncode=completed.returncode,
                 via="native",
             )
+        if _is_windows() and is_docker_or_clab:
+            _NATIVE_DOCKER_DEAD_UNTIL = time.monotonic() + 60.0
     except FileNotFoundError:
         if not wsl_available():
             return BridgeResult(False, "", "executable not found", -1, "none")
+        if _is_windows() and is_docker_or_clab:
+            _NATIVE_DOCKER_DEAD_UNTIL = time.monotonic() + 60.0
     except subprocess.TimeoutExpired:
         return BridgeResult(False, "", f"timed out after {timeout}s", -1, "native")
 
@@ -174,11 +199,18 @@ def _bash_quote(value: str) -> str:
 
 def which_clab() -> str | None:
     """Return a usable clab invocation token: native path or 'clab' via WSL."""
+    global _CLAB_CACHE
+    now = time.monotonic()
+    if now < _CLAB_CACHE[0]:
+        return _CLAB_CACHE[1]
     native = shutil.which("containerlab") or shutil.which("clab")
     if native:
+        _CLAB_CACHE = (now + 60.0, native)
         return native
     if wsl_available():
         probe = run_via_wsl(["clab", "version"], timeout=20)
         if probe.ok or "version" in (probe.stdout + probe.stderr).lower():
+            _CLAB_CACHE = (now + 60.0, "clab")
             return "clab"
+    _CLAB_CACHE = (now + 15.0, None)
     return None

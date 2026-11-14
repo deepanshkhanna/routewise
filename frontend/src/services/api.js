@@ -4,15 +4,13 @@
  */
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const DIRECT_BACKEND = 'http://127.0.0.1:8000';
 
-async function request(path, options = {}) {
+async function fetchWithTimeout(url, fetchOptions, timeoutMs) {
   const controller = new AbortController();
-  const timeoutMs = options.timeoutMs || 15000;
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  const { timeoutMs: _ignored, ...fetchOptions } = options;
-
   try {
-    const response = await fetch(`${API_BASE}${path}`, {
+    return await fetch(url, {
       ...fetchOptions,
       signal: controller.signal,
       headers: {
@@ -21,22 +19,40 @@ async function request(path, options = {}) {
         ...(fetchOptions.headers || {}),
       },
     });
-
-    if (!response.ok) {
-      const detail = await response.text();
-      const error = new Error(detail || `HTTP ${response.status}`);
-      error.status = response.status;
-      throw error;
-    }
-
-    if (response.status === 204) {
-      return null;
-    }
-
-    return await response.json();
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function request(path, options = {}) {
+  const timeoutMs = options.timeoutMs || 25000;
+  const { timeoutMs: _ignored, ...fetchOptions } = options;
+  const primaryUrl = `${API_BASE}${path}`;
+
+  let response;
+  try {
+    response = await fetchWithTimeout(primaryUrl, fetchOptions, timeoutMs);
+  } catch (err) {
+    // Fallback to direct 127.0.0.1:8000 if proxy or localhost resolution hiccups.
+    if (primaryUrl !== `${DIRECT_BACKEND}${path}`) {
+      response = await fetchWithTimeout(`${DIRECT_BACKEND}${path}`, fetchOptions, timeoutMs);
+    } else {
+      throw err;
+    }
+  }
+
+  if (!response.ok) {
+    const detail = await response.text();
+    const error = new Error(detail || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  return await response.json();
 }
 
 export const api = {
@@ -64,6 +80,14 @@ export const api = {
     request(`/api/networks/${id}/simulate/links/${linkId}/disable`, { method: 'POST' }),
   enableLink: (id, linkId) =>
     request(`/api/networks/${id}/simulate/links/${linkId}/enable`, { method: 'POST' }),
+  failRouter: (id, routerName) =>
+    request(`/api/networks/${id}/simulate/routers/${encodeURIComponent(routerName)}/fail`, {
+      method: 'POST',
+    }),
+  restoreRouter: (id, routerName) =>
+    request(`/api/networks/${id}/simulate/routers/${encodeURIComponent(routerName)}/restore`, {
+      method: 'POST',
+    }),
   ping: (id, source, destination) =>
     request(`/api/networks/${id}/diagnostics/ping`, {
       method: 'POST',

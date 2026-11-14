@@ -83,7 +83,11 @@ export default function App() {
 
   return (
     <div className="app-root">
-      <Header backendOk={backendOk} labRunning={Boolean(lab?.running)} />
+      <Header
+        backendOk={backendOk}
+        labRunning={Boolean(lab?.running || overview?.lab_running)}
+        labChecking={lab === null && overview === null}
+      />
       <Sidebar />
       <main className="app-main">
         <AppRoutes
